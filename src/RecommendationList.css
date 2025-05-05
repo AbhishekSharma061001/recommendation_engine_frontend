@@ -1,0 +1,22 @@
+.list-container {
+    margin-top: 40px;
+  }
+  
+  .recommendation-card {
+    background: #1e1e1e;
+    padding: 20px;
+    margin-bottom: 16px;
+    border-left: 4px solid #7c3aed;
+    border-radius: 8px;
+    transition: 0.3s;
+  }
+  
+  .recommendation-card:hover {
+    background: #2a2a2a;
+  }
+  
+  .recommendation-card h3 {
+    margin: 0 0 10px 0;
+    color: #fff;
+  }
+  
