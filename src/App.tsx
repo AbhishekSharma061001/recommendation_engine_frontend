@@ -1,137 +1,114 @@
-import React, { useState } from "react";
+import React, { useState, FormEvent } from "react";
+import RecommendationList from "./RecommendationList";
 import "./App.css";
 
-const App = () => {
-  const [role, setRole] = useState("");
-  const [skills, setSkills] = useState<string[]>([]);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+const roles = [
+  "Software Engineer",
+  "Team Lead",
+  "Customer Support",
+  "Frontend Developer",
+  "Data Analyst"
+];
+  const skillsList = [
+  "Java",
+  "OOPs",
+  "DSA",
+  "Leadership",
+  "Decision Making",
+  "Communication",
+  "Listening",
+  "JavaScript",
+  "React",
+  "CSS",
+  "Python",
+  "SQL",
+  "Statistics"
+];
 
-  const roles = [
-    "Software Engineer",
-    "Frontend Developer",
-    "Backend Developer",
-    "Data Analyst",
-    "DevOps Engineer",
-    "Product Manager",
-    "Team Lead",
-    "Customer Support",
-    "UX Designer",
-    "QA Engineer",
-    "Sales",
-    "HR"
-  ];
-  
-  const availableSkills = [
-    "Java",
-    "OOPs",
-    "DSA",
-    "JavaScript",
-    "React",
-    "Node.js",
-    "Python",
-    "SQL",
-    "Docker",
-    "CI/CD",
-    "AWS",
-    "Leadership",
-    "Decision Making",
-    "Communication",
-    "Listening",
-    "Wireframing",
-    "Figma",
-    "Testing",
-    "Negotiation",
-    "Market Research",
-    "Stakeholder Management",
-    "Compliance"
-  ];
-  
+interface Recommendation {
+  id: number;
+  name: string;
+  role: string;
+  skills: string[];
+  duration: number;
+  matchScore: number;
+}
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRole(e.target.value);
-  };
+const App: React.FC = () => {
+  const [role, setRole] = useState<string>(roles[0]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [jobDescription, setJobDescription] = useState<string>("");
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSkillToggle = (skill: string) => {
-    setSkills((prevSkills) =>
-      prevSkills.includes(skill)
-        ? prevSkills.filter((s) => s !== skill)
-        : [...prevSkills, skill]
+  const toggleSkill = (skill: string) => {
+    setSelectedSkills((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
-    const response = await fetch("https://recommendation-engine-backend-1.onrender.com/recommend", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ role, skills }),
+    const params = new URLSearchParams({
+      role,
+      skills: selectedSkills.join(","),
+      jobDescription,
     });
 
-    const data = await response.json();
-    setRecommendations(data.recommendations);
+    try {
+      const response = await fetch(`https://recommendation-engine-backend-1.onrender.com/recommend?${params}`);
+      const data = await response.json();
+      setRecommendations(data.recommendations || []);
+    } catch (err) {
+      alert("Something went wrong while fetching recommendations.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="container">
-      <h1 className="header">Assessment Recommendation Engine</h1>
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="role">Role</label>
-          <select
-            id="role"
-            value={role}
-            onChange={handleRoleChange}
-            required
-            className="select"
-          >
-            <option value="">Select a Role</option>
-            {roles.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+    <div className="app-container">
+      <h1>🧠 Assessment Recommender</h1>
+
+      <form onSubmit={handleSubmit} className="form-container">
+        <label>Select Role</label>
+        <select value={role} onChange={(e) => setRole(e.target.value)}>
+          {roles.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+
+        <label>Select Skills</label>
+        <div className="skills-list">
+          {skillsList.map((skill) => (
+            <div
+              key={skill}
+              className={`skill-tag ${selectedSkills.includes(skill) ? "selected" : ""}`}
+              onClick={() => toggleSkill(skill)}
+            >
+              {skill}
+            </div>
+          ))}
         </div>
 
-        <div className="form-group">
-          <label>Skills</label>
-          <div className="skills">
-            {availableSkills.map((skill) => (
-              <button
-                key={skill}
-                type="button"
-                className={`skill-btn ${skills.includes(skill) ? "selected" : ""}`}
-                onClick={() => handleSkillToggle(skill)}
-              >
-                {skill}
-              </button>
-            ))}
-          </div>
-        </div>
+        <label>Job Description (optional)</label>
+        <textarea
+          rows={4}
+          placeholder="Paste job description here..."
+          value={jobDescription}
+          onChange={(e) => setJobDescription(e.target.value)}
+        />
 
-        <button type="submit" className="submit-btn">
-          Get Recommendations
+        <button type="submit" disabled={loading}>
+          {loading ? "Recommending..." : "Get Recommendations"}
         </button>
       </form>
 
-      {recommendations.length > 0 && (
-        <div className="recommendations">
-          <h2>Recommended Assessments:</h2>
-          <div className="cards">
-            {recommendations.map((rec) => (
-              <div key={rec.id} className="card">
-                <h3>{rec.name}</h3>
-                <p><strong>Role:</strong> {rec.role}</p>
-                <p><strong>Duration:</strong> {rec.duration} minutes</p>
-                <p><strong>Match Score:</strong> {rec.matchScore}%</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <RecommendationList recommendations={recommendations} />
     </div>
   );
 };
